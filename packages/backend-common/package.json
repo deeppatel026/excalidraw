@@ -1,0 +1,6 @@
+{
+  "name": "@repo/backend-common",
+  "version": "1.0.0",
+  "main": "config.ts",
+  "types": "config.ts"
+}
