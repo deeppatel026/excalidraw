@@ -1,0 +1,15 @@
+{
+    "extends": "@repo/typescript-config/base.json",
+    "compilerOptions": {
+        "rootDir": "./",
+        "outDir": "./dist",
+        "declaration": true,
+        "declarationMap": false,
+        "emitDeclarationOnly": false,
+        "module": "CommonJS",
+        "target": "ES2022",
+        "esModuleInterop": true,
+        "moduleResolution": "Node"
+    },
+    "include": ["./**/*.ts"]
+}
