@@ -2,7 +2,6 @@ import dotenv from "dotenv";
 import path from "path"
 
 dotenv.config({ path: path.resolve(process.cwd(), "../../packages/db/.env") });
-
 import express from "express"
 import jwt from "jsonwebtoken"
 import { JWT_SECRET } from "@repo/backend-common";
@@ -57,24 +56,24 @@ app.post("/signin", async (req, res) => {
         res.status(302).json({
             message: "Incorrect input or miss on the zod validation"
         })
-        return ;
+        return;
     }
 
     const user = await prismaClient.user.findFirst({
-        where:{
+        where: {
             email: data.data.email,
             password: data.data.password
         }
     })
 
-    if(!user){
+    if (!user) {
         res.status(412).json({
             message: "No user found"
         })
         return;
     }
     const token = jwt.sign({
-        userId:user.id
+        userId: user.id
     }, JWT_SECRET)
 
     res.json({
@@ -96,18 +95,36 @@ app.post("/create-room", middleware, async (req, res) => {
 
     //@ts-ignore
     const userId = req.userId
-    await prismaClient.room.create({
-        data:{
-            slug: data.data?.name,
-            adminId: userId
-        }
-    })
+    try {
+        const room = await prismaClient.room.create({
+            data: {
+                slug: data.data?.name,
+                adminId: userId
+            }
+        })
 
 
-    const roomId = 123;
-    res.json({
-        message: "room created successfully",
-        roomId: roomId
+        res.json({
+            message: "room created successfully",
+            roomId: room.id
+        })
+    } catch (e) {
+        res.status(411).json({
+            message: "Room already exists"
+        })
+    }
+})
+
+app.get("/chats/:roomId", async function (req,res){
+    const roomId = Number(req.params.roomId);
+    const messages = await prismaClient.chatArchive.findMany({
+        where:{
+            roomId: roomId
+        },
+        orderBy:{
+            id: "desc"
+        },
+        take: 50
     })
 })
 
