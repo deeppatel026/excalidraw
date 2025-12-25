@@ -1,9 +1,16 @@
+import dotenv from "dotenv";
+import path from "path"
+
+dotenv.config({ path: path.resolve(process.cwd(), "../../packages/db/.env") });
+
 import express from "express"
 import jwt from "jsonwebtoken"
 import { JWT_SECRET } from "@repo/backend-common";
 import { middleware } from "./middleware";
 import { createUserSchema, signinUserSchema, createRoomSchema } from "@repo/common/zodschema"
 import { prismaClient } from "@repo/db"
+
+
 
 const app = express()
 
@@ -29,29 +36,45 @@ app.post("/signup", async (req, res) => {
                 name: parsedData.data.name
             }
         })
+        res.status(201).json({
+            message: "Signed up successfully",
+            userId: userAdd.id
+        })
     } catch (e) {
+        console.log("PRISMA ERROR:", e);
         res.status(411).json({
             message: "User already exists or email already registered"
         })
     }
 
-
-
-    //Need a DB call here 
 })
 
 
-app.post("/signin", (req, res) => {
+app.post("/signin", async (req, res) => {
 
     const data = signinUserSchema.safeParse(req.body);
     if (!data.success) {
         res.status(302).json({
             message: "Incorrect input or miss on the zod validation"
         })
+        return ;
     }
-    const userId = 1;
+
+    const user = await prismaClient.user.findFirst({
+        where:{
+            email: data.data.email,
+            password: data.data.password
+        }
+    })
+
+    if(!user){
+        res.status(412).json({
+            message: "No user found"
+        })
+        return;
+    }
     const token = jwt.sign({
-        userId
+        userId:user.id
     }, JWT_SECRET)
 
     res.json({
@@ -61,14 +84,25 @@ app.post("/signin", (req, res) => {
 })
 
 
-app.post("/create-room", middleware, (req, res) => {
+app.post("/create-room", middleware, async (req, res) => {
 
     const data = createRoomSchema.safeParse(req.body);
     if (!data.success) {
         res.status(302).json({
             message: "Incorrect input or miss on the zod validation"
         })
+        return;
     }
+
+    //@ts-ignore
+    const userId = req.userId
+    await prismaClient.room.create({
+        data:{
+            slug: data.data?.name,
+            adminId: userId
+        }
+    })
+
 
     const roomId = 123;
     res.json({
